@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Subgen</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
+    <style>
+        .custom-file-input::-webkit-file-upload-button {
+            visibility: hidden;
+        }
+        .custom-file-input::before {
+            content: 'Select file';
+            display: inline-block;
+            background: linear-gradient(top, #f9f9f9, #e3e3e3);
+            border: 1px solid #999;
+            border-radius: 3px;
+            padding: 5px 8px;
+            outline: none;
+            white-space: nowrap;
+            cursor: pointer;
+            text-shadow: 1px 1px #fff;
+            font-weight: 700;
+            font-size: 10pt;
+        }
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .speed-control {
+            width: 100px;
+        }
+        .progress-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .progress-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            width: 300px;
+        }
+        .subtitle-display {
+            resize: both;
+            overflow: auto;
+            min-height: 100px;
+            background: #343a40;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Updated for clearer subtitle text */
+        .subtitle-text {
+            color: #fff;
+            font-size: 28px; /* new size */
+            text-align: center;
+            background: none;
+            padding: 10px 20px;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Modal Added -->
+    <div id="progressModal" class="progress-modal">
+        <div class="progress-content">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: 0%;" id="progressBar"></div>
+            </div>
+            <p id="progressText">Starting...</p>
+        </div>
+    </div>
+
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">AI Subgen</a>
+        </nav>
+    </header>
+    
+    <main>
+        <div class="container mt-4 d-flex justify-content-center">
+            <input type="file" id="audioFile" accept="audio/*" hidden>
+            <input type="file" id="jsonFile" accept=".json" hidden>
+            
+            <button type="button" onclick="document.getElementById('audioFile').click()" class="btn btn-success btn-md text-white mx-2" style="width: 100px;">Audio</button>
+            <button type="button" onclick="document.getElementById('jsonFile').click()" class="btn btn-success btn-md text-white mx-2" style="width: 100px;">JSON</button>
+            <button type="button" id="transcribeBtn" class="btn btn-success btn-md text-white mx-2" style="width: 100px;">Transcribe</button>
+        </div>
+
+        <div class="container mt-4">
+            <div class="custom-audio-player">
+                <audio id="audioPlayer" style="width: 100%;" controls></audio>
+            </div>
+            <!-- Custom Playback Controls -->
+            <div class="audio-controls">
+                <button id="playBtn" class="btn btn-primary btn-sm">Play</button>
+                <button id="pauseBtn" class="btn btn-secondary btn-sm">Pause</button>
+                <label for="speedControl" class="mb-0">Speed:</label>
+                <input id="speedControl" type="range" min="0.5" max="2" step="0.1" value="1" class="speed-control">
+                <span id="speedValue">1x</span>
+            </div>
+            <div class="subtitle-display">
+                <p class="subtitle-text" id="currentSubtitle"></p>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FitText.js/1.2.0/jquery.fittext.min.js"></script>
+    <script>
+        let subtitles = [];
+        let currentSubtitleIndex = -1;
+
+        const audioPlayer = document.getElementById('audioPlayer');
+
+        // Handle audio file selection
+        document.getElementById('audioFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                audioPlayer.src = URL.createObjectURL(file);
+            }
+        });
+
+        // Handle JSON file selection
+        document.getElementById('jsonFile').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    const text = await file.text();
+                    subtitles = JSON.parse(text);
+                } catch (error) {
+                    alert('Error loading JSON file: ' + error.message);
+                }
+            }
+        });
+
+        // Handle transcribe button click
+        document.getElementById('transcribeBtn').addEventListener('click', async function() {
+            const audioFile = document.getElementById('audioFile').files[0];
+            if (!audioFile) {
+                alert('Please select an audio file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('audio', audioFile);
+
+            // Show progress modal
+            const progressModal = document.getElementById('progressModal');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            progressModal.style.display = 'block';
+
+            try {
+                const response = await fetch('/transcribe', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Transcription failed');
+
+                const result = await response.json();
+                subtitles = result.subtitles;
+                
+                // Trigger download
+                const downloadUrl = '/save-subtitles';
+                window.location.href = downloadUrl;
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                progressModal.style.display = 'none';
+            }
+        });
+
+        // Audio player subtitle tracking
+        const subtitleElement = document.getElementById('currentSubtitle');
+
+        audioPlayer.addEventListener('timeupdate', function() {
+            const currentTime = audioPlayer.currentTime;
+            
+            // Find the current subtitle
+            const currentSubtitle = subtitles.find(subtitle => 
+                currentTime >= subtitle.start && currentTime <= subtitle.end
+            );
+
+            if (currentSubtitle) {
+                subtitleElement.textContent = currentSubtitle.text;
+                subtitleElement.style.display = 'block';
+            } else {
+                subtitleElement.style.display = 'none';
+            }
+        });
+
+        // Handle download button
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            if (subtitles && subtitles.length > 0) {
+                window.location.href = '/save-subtitles';
+            } else {
+                alert('No subtitles available to download');
+            }
+        });
+
+        // Custom Playback Control Event Listeners
+        document.getElementById('playBtn').addEventListener('click', function() {
+            audioPlayer.play();
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', function() {
+            audioPlayer.pause();
+        });
+
+        const speedControl = document.getElementById('speedControl');
+        const speedValue = document.getElementById('speedValue');
+
+        speedControl.addEventListener('input', function() {
+            audioPlayer.playbackRate = parseFloat(this.value);
+            speedValue.textContent = this.value + 'x';
+        });
+
+        // Make sure jQuery is loaded too
+        $(document).ready(function(){
+            $('#currentSubtitle').fitText(1.2);
+        });
+
+        // Observe changes to the subtitle-display container size
+        const subtitleContainer = document.querySelector('.subtitle-display');
+        const subtitleText = document.getElementById('currentSubtitle');
+
+        const resizeObserver = new ResizeObserver(() => {
+          // Re-run FitText on the subtitle text element when container size changes
+          $(subtitleText).fitText(1.2);
+        });
+
+        // Start observing the container
+        resizeObserver.observe(subtitleContainer);
+    </script>
+</body>
+</html>
