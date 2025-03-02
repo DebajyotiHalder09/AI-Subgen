@@ -74,6 +74,11 @@
             margin: 0;
             font-family: Arial, sans-serif;
         }
+        .speed-dropdown {
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -111,9 +116,22 @@
             <div class="audio-controls">
                 <button id="playBtn" class="btn btn-primary btn-sm">Play</button>
                 <button id="pauseBtn" class="btn btn-secondary btn-sm">Pause</button>
-                <label for="speedControl" class="mb-0">Speed:</label>
-                <input id="speedControl" type="range" min="0.5" max="2" step="0.1" value="1" class="speed-control">
-                <span id="speedValue">1x</span>
+                
+                <!-- Speed Dropdown -->
+                <label for="speedDropdown" class="mb-0 ml-2">Speed:</label>
+                <select id="speedDropdown" class="speed-dropdown form-control form-control-sm" style="width: auto;">
+                    <option value="1.09">1.09x</option>
+                    <option value="1.04">1.04x</option>
+                    <option value="1.00" selected>1.00x</option>
+                    <option value="0.96">0.96x</option>
+                    <option value="0.92">0.92x</option>
+                    <option value="0.88">0.88x</option>
+                    <option value="0.85">0.85x</option>
+                    <option value="0.82">0.82x</option>
+                    <option value="0.78">0.78x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="0.72">0.72x</option>
+                </select>
             </div>
             <div class="subtitle-display">
                 <p class="subtitle-text" id="currentSubtitle"></p>
@@ -127,6 +145,13 @@
         let currentSubtitleIndex = -1;
 
         const audioPlayer = document.getElementById('audioPlayer');
+        const speedDropdown = document.getElementById('speedDropdown');
+        
+        // Add change event listener to speed dropdown
+        speedDropdown.addEventListener('change', function() {
+            const newSpeed = parseFloat(this.value);
+            audioPlayer.playbackRate = newSpeed;
+        });
 
         // Handle audio file selection
         document.getElementById('audioFile').addEventListener('change', function(e) {
@@ -206,15 +231,6 @@
             }
         });
 
-        // Handle download button
-        document.getElementById('downloadBtn').addEventListener('click', function() {
-            if (subtitles && subtitles.length > 0) {
-                window.location.href = '/save-subtitles';
-            } else {
-                alert('No subtitles available to download');
-            }
-        });
-
         // Custom Playback Control Event Listeners
         document.getElementById('playBtn').addEventListener('click', function() {
             audioPlayer.play();
@@ -222,14 +238,6 @@
 
         document.getElementById('pauseBtn').addEventListener('click', function() {
             audioPlayer.pause();
-        });
-
-        const speedControl = document.getElementById('speedControl');
-        const speedValue = document.getElementById('speedValue');
-
-        speedControl.addEventListener('input', function() {
-            audioPlayer.playbackRate = parseFloat(this.value);
-            speedValue.textContent = this.value + 'x';
         });
 
         // Make sure jQuery is loaded too

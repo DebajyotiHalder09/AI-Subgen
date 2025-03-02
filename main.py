@@ -7,7 +7,6 @@ import tempfile
 from flask import Flask, request, jsonify, render_template, send_file, Response
 from flask_cors import CORS
 import traceback
-import time
 
 # Configure logging
 logging.basicConfig(
