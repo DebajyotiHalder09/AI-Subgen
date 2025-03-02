@@ -114,8 +114,18 @@
             </div>
             <!-- Custom Playback Controls -->
             <div class="audio-controls">
+                <!-- Skip Backward Button -->
+                <button id="skipBackBtn" class="btn btn-info btn-sm">
+                    <span>-5s</span>
+                </button>
+                
                 <button id="playBtn" class="btn btn-primary btn-sm">Play</button>
                 <button id="pauseBtn" class="btn btn-secondary btn-sm">Pause</button>
+                
+                <!-- Skip Forward Button -->
+                <button id="skipForwardBtn" class="btn btn-info btn-sm">
+                    <span>+5s</span>
+                </button>
                 
                 <!-- Speed Dropdown -->
                 <label for="speedDropdown" class="mb-0 ml-2">Speed:</label>
@@ -146,11 +156,23 @@
 
         const audioPlayer = document.getElementById('audioPlayer');
         const speedDropdown = document.getElementById('speedDropdown');
+        const skipBackBtn = document.getElementById('skipBackBtn');
+        const skipForwardBtn = document.getElementById('skipForwardBtn');
         
         // Add change event listener to speed dropdown
         speedDropdown.addEventListener('change', function() {
             const newSpeed = parseFloat(this.value);
             audioPlayer.playbackRate = newSpeed;
+        });
+        
+        // Skip backward 5 seconds
+        skipBackBtn.addEventListener('click', function() {
+            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
+        });
+        
+        // Skip forward 5 seconds
+        skipForwardBtn.addEventListener('click', function() {
+            audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 5);
         });
 
         // Handle audio file selection
@@ -256,6 +278,27 @@
 
         // Start observing the container
         resizeObserver.observe(subtitleContainer);
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Left arrow key (skip back 5 seconds)
+            if (e.key === 'ArrowLeft') {
+                audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
+            }
+            // Right arrow key (skip forward 5 seconds)
+            else if (e.key === 'ArrowRight') {
+                audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 5);
+            }
+            // Space key (play/pause)
+            else if (e.key === ' ' && document.activeElement.tagName !== 'BUTTON') {
+                e.preventDefault(); // Prevent scrolling when pressing space
+                if (audioPlayer.paused) {
+                    audioPlayer.play();
+                } else {
+                    audioPlayer.pause();
+                }
+            }
+        });
     </script>
 </body>
 </html>
